@@ -53,7 +53,7 @@ button {
     radial-gradient(circle at 50% 46%, rgba(255, 71, 126, .18), transparent 18rem),
     radial-gradient(circle at 15% 20%, rgba(57, 244, 223, .14), transparent 18rem),
     linear-gradient(135deg, #070712, #17081a 45%, #080813);
-  transition: opacity 900ms ease, transform 900ms ease, visibility 900ms;
+  transition: opacity 700ms ease, transform 700ms ease, visibility 700ms;
 }
 
 .locked-scene::before {
@@ -160,10 +160,10 @@ button {
   opacity: .82;
 }
 
-body.opened .locked-scene {
+body.revealed .locked-scene {
   opacity: 0;
   visibility: hidden;
-  transform: scale(1.18);
+  transform: scale(1.08);
   pointer-events: none;
 }
 
@@ -171,8 +171,12 @@ body.deep-open .locked-scene {
   display: none;
 }
 
-body.opened .gift__lid {
+body.opening .gift__lid {
   animation: popLid 900ms cubic-bezier(.2, 1.4, .2, 1) forwards;
+}
+
+body.opening .gift {
+  animation: giftFlash 900ms ease forwards;
 }
 
 .reveal {
@@ -226,7 +230,7 @@ body.opened .gift__lid {
   transition: opacity 1000ms 420ms ease, transform 1000ms 420ms ease;
 }
 
-body.opened .letter {
+body.revealed .letter {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
@@ -396,6 +400,12 @@ h2 {
 
 @keyframes popLid {
   to { transform: translate(-34px, -74px) rotate(-28deg); opacity: 0; }
+}
+
+@keyframes giftFlash {
+  0% { filter: drop-shadow(0 28px 56px rgba(0, 0, 0, .55)); }
+  55% { transform: translateY(-8px) scale(1.04); filter: drop-shadow(0 0 58px rgba(255, 209, 102, .8)); }
+  100% { transform: translateY(8px) scale(.92); filter: drop-shadow(0 0 80px rgba(255, 71, 126, .7)); }
 }
 
 @keyframes slowTurn {

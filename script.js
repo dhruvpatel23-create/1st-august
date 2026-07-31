@@ -110,11 +110,14 @@ function makeHearts(count = 18) {
 }
 
 giftButton.addEventListener("click", () => {
+  if (opened) return;
   opened = true;
-  document.body.classList.add("opened");
-  if (location.hash !== "#open") history.replaceState(null, "", "#open");
+  document.body.classList.add("opening");
   makeBurst(window.innerWidth / 2, window.innerHeight * .42);
-  setTimeout(() => makeHearts(24), 260);
+  setTimeout(() => {
+    document.body.classList.add("revealed");
+    makeHearts(24);
+  }, 650);
 });
 
 sparkButton.addEventListener("click", (event) => {
@@ -143,5 +146,5 @@ animate();
 
 if (location.hash === "#open") {
   opened = true;
-  document.body.classList.add("opened", "deep-open");
+  document.body.classList.add("revealed", "deep-open");
 }
