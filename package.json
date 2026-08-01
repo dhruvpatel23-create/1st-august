@@ -1,11 +1,17 @@
 {
-  "name": "1st-august",
+  "name": "online-poker-table",
   "version": "1.0.0",
-  "private": true,
+  "description": "A polished online Texas Hold'em poker table with login and backend game state.",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "engines": {
-    "node": ">=18"
-  }
+  "keywords": [
+    "poker",
+    "texas-holdem",
+    "node"
+  ],
+  "author": "",
+  "license": "MIT"
 }

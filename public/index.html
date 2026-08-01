@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>High Rise Online Poker</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="login-panel" id="loginPanel">
+        <div class="brand">
+          <h1>High Rise Online Poker</h1>
+          <p>Private Texas Hold'em rooms with host-controlled buy-ins.</p>
+        </div>
+        <form id="loginForm" class="panel-form">
+          <label for="playerName">Player name</label>
+          <input id="playerName" name="playerName" autocomplete="nickname" maxlength="24" placeholder="Enter your name" />
+          <button type="submit" class="gold">Continue</button>
+          <p id="loginError" class="error"></p>
+        </form>
+      </section>
+
+      <section class="lobby-screen hidden" id="lobbyScreen">
+        <header class="lobby-header">
+          <div>
+            <h1>High Rise Online Poker</h1>
+            <p id="welcomeText">Choose a table.</p>
+          </div>
+        </header>
+        <div class="lobby-grid">
+          <form class="lobby-card" id="createRoomForm">
+            <h2>Make Room</h2>
+            <p>Host a real-player table. You control blinds, buy-ins, chip stacks, and when the hand starts.</p>
+            <button type="submit" class="green">Generate Room Code</button>
+          </form>
+          <form class="lobby-card" id="joinRoomForm">
+            <h2>Join Room</h2>
+            <p>Enter the code shared by a host.</p>
+            <input id="roomCodeInput" maxlength="8" placeholder="ROOM CODE" />
+            <button type="submit" class="blue">Join Table</button>
+          </form>
+          <form class="lobby-card" id="practiceRoomForm">
+            <h2>Practice Room</h2>
+            <p>Play against bots while testing rules and actions.</p>
+            <button type="submit" class="red">Practice With Bots</button>
+          </form>
+        </div>
+        <p id="lobbyError" class="error center"></p>
+      </section>
+
+      <section class="table-screen hidden" id="tableScreen">
+        <header class="topbar">
+          <div>
+            <h1>High Rise Online Poker</h1>
+          </div>
+          <div class="room-badges">
+            <button id="leaveRoom">Leave</button>
+            <div class="status-pill" id="roomCode">Room</div>
+            <div class="status-pill" id="phaseBadge">Lobby</div>
+          </div>
+        </header>
+
+        <section class="table-grid">
+          <section class="table-stage">
+            <div class="table-zone">
+              <div class="table-rail">
+                <div class="felt">
+                  <div class="table-title">High Rise Online Poker</div>
+                  <div class="pot" id="pot">Pot $0</div>
+                  <div class="community" id="community"></div>
+                  <div class="winner" id="winner"></div>
+                </div>
+              </div>
+              <div class="seat-ring" id="seatRing"></div>
+            </div>
+            <div class="hand-area">
+              <div>
+                <span class="label">Your Cards</span>
+                <div class="cards" id="holeCards"></div>
+              </div>
+              <div class="actions">
+                <button data-action="check" class="green">Check</button>
+                <button data-action="call" class="blue">Call</button>
+                <button data-action="raise" class="red">Raise</button>
+                <button data-action="allin" class="gold">All-In</button>
+                <button data-action="fold">Fold</button>
+                <input id="raiseAmount" type="number" min="50" step="25" value="100" />
+              </div>
+            </div>
+          </section>
+
+          <aside class="control-panel">
+            <section class="host-panel hidden" id="hostPanel">
+              <h2>Host Controls</h2>
+              <div class="host-fields">
+                <label>Small Blind<input id="smallBlind" type="number" min="1" value="25" /></label>
+                <label>Big Blind<input id="bigBlind" type="number" min="2" value="50" /></label>
+                <label>Default Buy-in<input id="defaultBuyIn" type="number" min="50" value="1250" /></label>
+              </div>
+              <button id="saveSettings" class="blue">Save Settings</button>
+              <div id="chipControls" class="chip-controls"></div>
+              <button id="startHand" class="green">Start Hand</button>
+            </section>
+            <section>
+              <h2>Hand Log</h2>
+              <ol id="log" class="log"></ol>
+            </section>
+            <p id="gameError" class="error"></p>
+          </aside>
+        </section>
+      </section>
+    </main>
+    <script src="/script.js"></script>
+  </body>
+</html>
