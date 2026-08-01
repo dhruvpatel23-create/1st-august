@@ -85,7 +85,11 @@
                 <button data-action="raise" class="red">Raise</button>
                 <button data-action="allin" class="gold">All-In</button>
                 <button data-action="fold">Fold</button>
-                <input id="raiseAmount" type="number" min="50" step="25" value="100" />
+                <div class="raise-stepper">
+                  <button id="raiseMinus" type="button">-25</button>
+                  <input id="raiseAmount" type="number" min="50" step="25" value="100" />
+                  <button id="raisePlus" type="button">+25</button>
+                </div>
               </div>
             </div>
           </section>

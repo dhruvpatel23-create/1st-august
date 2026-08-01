@@ -18,6 +18,8 @@ const winnerEl = $("#winner");
 const seatRing = $("#seatRing");
 const holeCardsEl = $("#holeCards");
 const raiseAmount = $("#raiseAmount");
+const raiseMinus = $("#raiseMinus");
+const raisePlus = $("#raisePlus");
 const logEl = $("#log");
 const hostPanel = $("#hostPanel");
 const chipControls = $("#chipControls");
@@ -130,6 +132,14 @@ $("#startHand").addEventListener("click", async () => {
   }
 });
 
+raiseMinus.addEventListener("click", () => {
+  changeRaiseAmount(-25);
+});
+
+raisePlus.addEventListener("click", () => {
+  changeRaiseAmount(25);
+});
+
 actionButtons.forEach((button) => {
   button.addEventListener("click", async () => {
     if (actionInFlight || button.disabled) return;
@@ -190,6 +200,7 @@ function render() {
 
   raiseAmount.min = room.highestBet + room.minRaise;
   raiseAmount.value = Math.max(Number(raiseAmount.value), room.highestBet + room.minRaise);
+  raiseMinus.disabled = actionInFlight || Number(raiseAmount.value) <= Number(raiseAmount.min);
   updateActionLabels(toCall);
   actionButtons.forEach((button) => {
     const action = button.dataset.action;
@@ -200,6 +211,14 @@ function render() {
 
   lastEvent = room.lastEvent;
   lastHandId = room.handId;
+}
+
+function changeRaiseAmount(delta) {
+  const min = Number(raiseAmount.min) || 0;
+  const current = Number(raiseAmount.value) || min;
+  const next = Math.max(min, current + delta);
+  raiseAmount.value = Math.ceil(next / 25) * 25;
+  raiseMinus.disabled = Number(raiseAmount.value) <= min;
 }
 
 function updateActionLabels(toCall) {

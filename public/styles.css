@@ -559,8 +559,20 @@ label,
   gap: 10px;
 }
 
-.actions input {
+.raise-stepper {
   grid-column: span 2;
+  display: grid;
+  grid-template-columns: 64px minmax(74px, 1fr) 64px;
+  gap: 8px;
+}
+
+.raise-stepper input,
+.raise-stepper button {
+  min-width: 0;
+}
+
+.raise-stepper input {
+  text-align: center;
 }
 
 .control-panel {
@@ -725,7 +737,7 @@ label,
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  .actions input {
+  .raise-stepper {
     grid-column: span 2;
   }
 
@@ -780,7 +792,8 @@ label,
     grid-template-columns: 1fr;
   }
 
-  .actions input {
+  .raise-stepper {
     grid-column: auto;
+    grid-template-columns: 72px minmax(90px, 1fr) 72px;
   }
 }
