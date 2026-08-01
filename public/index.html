@@ -55,6 +55,7 @@
             <h1>High Rise Online Poker</h1>
           </div>
           <div class="room-badges">
+            <button id="rankingsToggle">Hand Rankings</button>
             <button id="leaveRoom">Leave</button>
             <div class="status-pill" id="roomCode">Room</div>
             <div class="status-pill" id="phaseBadge">Lobby</div>
@@ -113,6 +114,25 @@
             <p id="gameError" class="error"></p>
           </aside>
         </section>
+
+        <aside class="rankings-drawer hidden" id="rankingsDrawer">
+          <div class="rankings-head">
+            <h2>Hand Rankings</h2>
+            <button id="rankingsClose" type="button">Close</button>
+          </div>
+          <ol class="rankings-list">
+            <li><div><strong>Royal Flush</strong><span>A K Q J 10, same suit</span></div><div class="rank-example red"><i>A♥</i><i>K♥</i><i>Q♥</i><i>J♥</i><i>10♥</i></div></li>
+            <li><div><strong>Straight Flush</strong><span>Five in order, same suit</span></div><div class="rank-example"><i>9♠</i><i>8♠</i><i>7♠</i><i>6♠</i><i>5♠</i></div></li>
+            <li><div><strong>Four of a Kind</strong><span>Four cards of one rank</span></div><div class="rank-example mixed"><i>Q♠</i><i>Q♥</i><i>Q♦</i><i>Q♣</i><i>3♠</i></div></li>
+            <li><div><strong>Full House</strong><span>Three of a kind plus a pair</span></div><div class="rank-example mixed"><i>10♠</i><i>10♥</i><i>10♣</i><i>4♦</i><i>4♠</i></div></li>
+            <li><div><strong>Flush</strong><span>Five cards of one suit</span></div><div class="rank-example red"><i>A♦</i><i>J♦</i><i>8♦</i><i>5♦</i><i>2♦</i></div></li>
+            <li><div><strong>Straight</strong><span>Five cards in order</span></div><div class="rank-example mixed"><i>8♣</i><i>7♦</i><i>6♠</i><i>5♥</i><i>4♣</i></div></li>
+            <li><div><strong>Three of a Kind</strong><span>Three cards of one rank</span></div><div class="rank-example mixed"><i>7♠</i><i>7♥</i><i>7♣</i><i>K♦</i><i>2♣</i></div></li>
+            <li><div><strong>Two Pair</strong><span>Two separate pairs</span></div><div class="rank-example mixed"><i>J♠</i><i>J♦</i><i>5♥</i><i>5♣</i><i>9♠</i></div></li>
+            <li><div><strong>One Pair</strong><span>Two cards of one rank</span></div><div class="rank-example mixed"><i>A♠</i><i>A♥</i><i>9♣</i><i>6♦</i><i>3♠</i></div></li>
+            <li><div><strong>High Card</strong><span>Highest card wins</span></div><div class="rank-example mixed"><i>A♣</i><i>J♦</i><i>8♠</i><i>4♥</i><i>2♣</i></div></li>
+          </ol>
+        </aside>
       </section>
     </main>
     <script src="/script.js"></script>

@@ -23,6 +23,7 @@ const raisePlus = $("#raisePlus");
 const logEl = $("#log");
 const hostPanel = $("#hostPanel");
 const chipControls = $("#chipControls");
+const rankingsDrawer = $("#rankingsDrawer");
 const actionButtons = [...document.querySelectorAll("[data-action]")];
 
 let me = null;
@@ -102,6 +103,14 @@ $("#leaveRoom").addEventListener("click", async () => {
   await api("/api/room/leave", { method: "POST", body: "{}" });
   room = null;
   showLobby();
+});
+
+$("#rankingsToggle").addEventListener("click", () => {
+  rankingsDrawer.classList.toggle("hidden");
+});
+
+$("#rankingsClose").addEventListener("click", () => {
+  rankingsDrawer.classList.add("hidden");
 });
 
 $("#saveSettings").addEventListener("click", async () => {

@@ -584,6 +584,95 @@ label,
   overflow: auto;
 }
 
+.rankings-drawer {
+  position: fixed;
+  right: 18px;
+  top: 86px;
+  z-index: 20;
+  width: min(360px, calc(100vw - 28px));
+  max-height: calc(100vh - 108px);
+  overflow: auto;
+  border: 1px solid rgba(255, 214, 109, 0.42);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(145deg, rgba(23, 19, 14, 0.98), rgba(4, 4, 4, 0.96)),
+    var(--panel);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.64), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: drawerIn 180ms ease both;
+}
+
+.rankings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rankings-head button {
+  padding: 8px 11px;
+}
+
+.rankings-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankings-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.rankings-list strong {
+  color: var(--gold-2);
+}
+
+.rankings-list span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.rank-example {
+  display: flex;
+  gap: 3px;
+}
+
+.rank-example i {
+  display: grid;
+  width: 30px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid #d8d0bf;
+  border-radius: 5px;
+  color: #111;
+  background: linear-gradient(160deg, #fffdf7, #e8ddca);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 1000;
+}
+
+.rank-example.red i {
+  color: #b31b16;
+}
+
+.rank-example.mixed i:nth-child(2),
+.rank-example.mixed i:nth-child(4) {
+  color: #b31b16;
+}
+
 .host-panel {
   display: grid;
   gap: 13px;
@@ -655,6 +744,17 @@ label,
   }
   50% {
     box-shadow: 0 0 18px rgba(255, 214, 109, 0.72);
+  }
+}
+
+@keyframes drawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -760,6 +860,21 @@ label,
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .rankings-drawer {
+    left: 12px;
+    right: 12px;
+    top: 92px;
+    width: auto;
+  }
+
+  .rankings-list li {
+    grid-template-columns: 1fr;
+  }
+
+  .rank-example {
+    justify-content: flex-start;
   }
 
   .table-zone {
