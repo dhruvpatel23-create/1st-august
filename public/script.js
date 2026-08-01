@@ -33,6 +33,7 @@ let lastCommunityKey = "";
 let lastHoleKey = "";
 let actionInFlight = false;
 let clockOffset = 0;
+let lastChipControlsKey = "";
 
 const suitMarks = { spades: "&spades;", hearts: "&hearts;", diamonds: "&diams;", clubs: "&clubs;" };
 
@@ -199,7 +200,9 @@ function render() {
   renderHostPanel();
 
   raiseAmount.min = room.highestBet + room.minRaise;
-  raiseAmount.value = Math.max(Number(raiseAmount.value), room.highestBet + room.minRaise);
+  if (document.activeElement !== raiseAmount) {
+    raiseAmount.value = normalizeChipAmount(Math.max(Number(raiseAmount.value), room.highestBet + room.minRaise));
+  }
   raiseMinus.disabled = actionInFlight || Number(raiseAmount.value) <= Number(raiseAmount.min);
   updateActionLabels(toCall);
   actionButtons.forEach((button) => {
@@ -217,8 +220,17 @@ function changeRaiseAmount(delta) {
   const min = Number(raiseAmount.min) || 0;
   const current = Number(raiseAmount.value) || min;
   const next = Math.max(min, current + delta);
-  raiseAmount.value = Math.ceil(next / 25) * 25;
+  raiseAmount.value = normalizeChipAmount(next);
   raiseMinus.disabled = Number(raiseAmount.value) <= min;
+}
+
+raiseAmount.addEventListener("change", () => {
+  const min = Number(raiseAmount.min) || 0;
+  raiseAmount.value = normalizeChipAmount(Math.max(min, Number(raiseAmount.value) || min));
+});
+
+function normalizeChipAmount(value) {
+  return Math.ceil(Number(value || 0) / 25) * 25;
 }
 
 function updateActionLabels(toCall) {
@@ -262,11 +274,16 @@ function renderSeats(turnLeft) {
 function renderHostPanel() {
   hostPanel.classList.toggle("hidden", !room.isHost);
   if (!room.isHost) return;
-  $("#smallBlind").value = room.smallBlind;
-  $("#bigBlind").value = room.bigBlind;
-  $("#defaultBuyIn").value = room.defaultBuyIn;
+  setInputValueIfIdle($("#smallBlind"), room.smallBlind);
+  setInputValueIfIdle($("#bigBlind"), room.bigBlind);
+  setInputValueIfIdle($("#defaultBuyIn"), room.defaultBuyIn);
   $("#startHand").disabled = !["lobby", "showdown"].includes(room.status);
-  chipControls.innerHTML = room.seats.filter((seat) => seat.connected).map((seat) => `
+  const seated = room.seats.filter((seat) => seat.connected);
+  const chipControlsKey = seated.map((seat) => `${seat.id}:${seat.name}:${seat.chips}`).join("|");
+  if (chipControlsKey === lastChipControlsKey && !chipControls.contains(document.activeElement)) return;
+  if (chipControls.contains(document.activeElement)) return;
+  lastChipControlsKey = chipControlsKey;
+  chipControls.innerHTML = seated.map((seat) => `
     <div class="chip-control">
       <span>${escapeHtml(seat.name)}</span>
       <input data-seat-id="${seat.id}" type="number" min="0" step="50" value="${seat.chips}" />
@@ -289,6 +306,10 @@ function renderHostPanel() {
       }
     });
   });
+}
+
+function setInputValueIfIdle(input, value) {
+  if (document.activeElement !== input) input.value = value;
 }
 
 function padCards(cards, count) {
