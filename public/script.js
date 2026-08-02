@@ -24,6 +24,11 @@ const logEl = $("#log");
 const hostPanel = $("#hostPanel");
 const chipControls = $("#chipControls");
 const rankingsDrawer = $("#rankingsDrawer");
+const micToggle = $("#micToggle");
+const speakerToggle = $("#speakerToggle");
+const voiceStatus = $("#voiceStatus");
+const voiceCount = $("#voiceCount");
+const voicePeers = $("#voicePeers");
 const actionButtons = [...document.querySelectorAll("[data-action]")];
 
 let me = null;
@@ -35,6 +40,14 @@ let lastHoleKey = "";
 let actionInFlight = false;
 let clockOffset = 0;
 let lastChipControlsKey = "";
+let localVoiceStream = null;
+let micEnabled = false;
+let speakerEnabled = true;
+let voiceSignalCursor = 0;
+let voiceTimer = null;
+let voicePollBusy = false;
+const voicePeersById = new Map();
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 const suitMarks = { spades: "&spades;", hearts: "&hearts;", diamonds: "&diams;", clubs: "&clubs;" };
 
@@ -100,6 +113,7 @@ joinRoomForm.addEventListener("submit", async (event) => {
 });
 
 $("#leaveRoom").addEventListener("click", async () => {
+  stopVoiceChat();
   await api("/api/room/leave", { method: "POST", body: "{}" });
   room = null;
   showLobby();
@@ -111,6 +125,30 @@ $("#rankingsToggle").addEventListener("click", () => {
 
 $("#rankingsClose").addEventListener("click", () => {
   rankingsDrawer.classList.add("hidden");
+});
+
+micToggle.addEventListener("click", async () => {
+  gameError.textContent = "";
+  if (micEnabled) {
+    stopVoiceChat();
+    renderVoiceStatus();
+    return;
+  }
+  try {
+    await startVoiceChat();
+  } catch (error) {
+    stopVoiceChat();
+    gameError.textContent = error.message;
+    renderVoiceStatus("Mic permission needed");
+  }
+});
+
+speakerToggle.addEventListener("click", () => {
+  speakerEnabled = !speakerEnabled;
+  document.querySelectorAll("audio[data-voice-peer]").forEach((audio) => {
+    audio.muted = !speakerEnabled;
+  });
+  renderVoiceStatus();
 });
 
 $("#saveSettings").addEventListener("click", async () => {
@@ -175,6 +213,7 @@ actionButtons.forEach((button) => {
 });
 
 function showLobby() {
+  stopVoiceChat();
   loginPanel.classList.add("hidden");
   tableScreen.classList.add("hidden");
   lobbyScreen.classList.remove("hidden");
@@ -207,6 +246,7 @@ function render() {
 
   renderSeats(turnLeft);
   renderHostPanel();
+  renderVoiceStatus();
 
   raiseAmount.min = room.highestBet + room.minRaise;
   if (document.activeElement !== raiseAmount) {
@@ -223,6 +263,156 @@ function render() {
 
   lastEvent = room.lastEvent;
   lastHandId = room.handId;
+}
+
+async function startVoiceChat() {
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support microphone chat.");
+  localVoiceStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    video: false
+  });
+  micEnabled = true;
+  startVoicePolling();
+  await syncVoicePeers();
+  renderVoiceStatus("Connecting");
+}
+
+function stopVoiceChat() {
+  micEnabled = false;
+  if (voiceTimer) clearInterval(voiceTimer);
+  voiceTimer = null;
+  voiceSignalCursor = 0;
+  for (const peer of voicePeersById.values()) closeVoicePeer(peer);
+  voicePeersById.clear();
+  if (localVoiceStream) localVoiceStream.getTracks().forEach((track) => track.stop());
+  localVoiceStream = null;
+  renderVoiceStatus();
+}
+
+function startVoicePolling() {
+  if (voiceTimer) return;
+  voiceTimer = setInterval(pollVoice, 900);
+  pollVoice();
+}
+
+async function pollVoice() {
+  if (!micEnabled || voicePollBusy || !room) return;
+  voicePollBusy = true;
+  try {
+    await syncVoicePeers();
+    const data = await api(`/api/voice/signals?since=${voiceSignalCursor}`);
+    for (const signal of data.signals) {
+      voiceSignalCursor = Math.max(voiceSignalCursor, signal.id);
+      await handleVoiceSignal(signal);
+    }
+  } catch (error) {
+    voiceStatus.textContent = "Voice reconnecting";
+  } finally {
+    voicePollBusy = false;
+  }
+}
+
+async function syncVoicePeers() {
+  if (!micEnabled || !room) return;
+  const data = await api("/api/voice/peers");
+  const liveIds = new Set(data.peers.map((peer) => peer.userId));
+  for (const id of [...voicePeersById.keys()]) {
+    if (!liveIds.has(id)) {
+      closeVoicePeer(voicePeersById.get(id));
+      voicePeersById.delete(id);
+    }
+  }
+  for (const peerInfo of data.peers) {
+    if (!voicePeersById.has(peerInfo.userId)) {
+      const peer = createVoicePeer(peerInfo);
+      voicePeersById.set(peerInfo.userId, peer);
+      if (me.id < peerInfo.userId) makeVoiceOffer(peer);
+    } else {
+      voicePeersById.get(peerInfo.userId).name = peerInfo.name;
+    }
+  }
+  renderVoiceStatus();
+}
+
+function createVoicePeer(info) {
+  const connection = new RTCPeerConnection(rtcConfig);
+  const audio = new Audio();
+  audio.autoplay = true;
+  audio.playsInline = true;
+  audio.muted = !speakerEnabled;
+  audio.dataset.voicePeer = info.userId;
+  document.body.append(audio);
+
+  localVoiceStream.getTracks().forEach((track) => connection.addTrack(track, localVoiceStream));
+  connection.onicecandidate = (event) => {
+    if (event.candidate) sendVoiceSignal(info.userId, { type: "candidate", candidate: event.candidate });
+  };
+  connection.ontrack = (event) => {
+    audio.srcObject = event.streams[0];
+    renderVoiceStatus();
+  };
+  connection.onconnectionstatechange = renderVoiceStatus;
+  return { ...info, connection, audio, makingOffer: false };
+}
+
+async function makeVoiceOffer(peer) {
+  if (peer.makingOffer) return;
+  peer.makingOffer = true;
+  try {
+    const offer = await peer.connection.createOffer();
+    await peer.connection.setLocalDescription(offer);
+    await sendVoiceSignal(peer.userId, { type: "offer", description: peer.connection.localDescription });
+  } finally {
+    peer.makingOffer = false;
+  }
+}
+
+async function handleVoiceSignal(signal) {
+  if (!micEnabled || signal.from === me.id) return;
+  let peer = voicePeersById.get(signal.from);
+  if (!peer) {
+    peer = createVoicePeer({ userId: signal.from, name: signal.fromName || "Player" });
+    voicePeersById.set(signal.from, peer);
+  }
+  const { payload } = signal;
+  if (payload.type === "offer") {
+    await peer.connection.setRemoteDescription(payload.description);
+    const answer = await peer.connection.createAnswer();
+    await peer.connection.setLocalDescription(answer);
+    await sendVoiceSignal(signal.from, { type: "answer", description: peer.connection.localDescription });
+  } else if (payload.type === "answer") {
+    await peer.connection.setRemoteDescription(payload.description);
+  } else if (payload.type === "candidate" && payload.candidate) {
+    await peer.connection.addIceCandidate(payload.candidate);
+  }
+  renderVoiceStatus();
+}
+
+async function sendVoiceSignal(to, payload) {
+  await api("/api/voice/signal", { method: "POST", body: JSON.stringify({ to, payload }) });
+}
+
+function closeVoicePeer(peer) {
+  peer.connection.close();
+  peer.audio.remove();
+}
+
+function renderVoiceStatus(statusText) {
+  micToggle.title = micEnabled ? "Turn microphone off" : "Turn microphone on";
+  micToggle.setAttribute("aria-label", micEnabled ? "Turn microphone off" : "Turn microphone on");
+  micToggle.classList.toggle("green", micEnabled);
+  micToggle.classList.toggle("is-off", !micEnabled);
+  speakerToggle.title = speakerEnabled ? "Mute table audio" : "Unmute table audio";
+  speakerToggle.setAttribute("aria-label", speakerEnabled ? "Mute table audio" : "Unmute table audio");
+  speakerToggle.classList.toggle("blue", speakerEnabled);
+  speakerToggle.classList.toggle("is-off", !speakerEnabled);
+  const connected = [...voicePeersById.values()].filter((peer) => peer.connection.connectionState === "connected").length;
+  voiceStatus.textContent = statusText || (micEnabled ? "Voice live" : "Mic off");
+  voiceCount.textContent = `${connected} connected`;
+  voicePeers.innerHTML = [...voicePeersById.values()].map((peer) => {
+    const state = peer.connection.connectionState || "new";
+    return `<div><span>${escapeHtml(peer.name)}</span><small>${escapeHtml(state)}</small></div>`;
+  }).join("");
 }
 
 function changeRaiseAmount(delta) {

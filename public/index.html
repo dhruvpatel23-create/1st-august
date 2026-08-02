@@ -55,6 +55,12 @@
             <h1>High Rise Online Poker</h1>
           </div>
           <div class="room-badges">
+            <button id="micToggle" class="icon-button" type="button" title="Turn microphone on" aria-label="Turn microphone on">
+              <span class="icon mic-icon" aria-hidden="true"></span>
+            </button>
+            <button id="speakerToggle" class="icon-button blue" type="button" title="Mute table audio" aria-label="Mute table audio">
+              <span class="icon speaker-icon" aria-hidden="true"></span>
+            </button>
             <button id="rankingsToggle">Hand Rankings</button>
             <button id="leaveRoom">Leave</button>
             <div class="status-pill" id="roomCode">Room</div>
@@ -106,6 +112,16 @@
               <button id="saveSettings" class="blue">Save Settings</button>
               <div id="chipControls" class="chip-controls"></div>
               <button id="startHand" class="green">Start Hand</button>
+            </section>
+            <section>
+              <h2>Voice Chat</h2>
+              <div class="voice-panel">
+                <div class="voice-state">
+                  <span id="voiceStatus">Mic off</span>
+                  <strong id="voiceCount">0 connected</strong>
+                </div>
+                <div id="voicePeers" class="voice-peers"></div>
+              </div>
             </section>
             <section>
               <h2>Hand Log</h2>

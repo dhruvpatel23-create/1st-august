@@ -65,6 +65,8 @@ function makeRoom({ host, practice = false }) {
     turnStartedAt: null,
     turnExpiresAt: null,
     lastEvent: "room-created",
+    voiceSignals: [],
+    voiceSignalId: 0,
     seats: Array.from({ length: MAX_SEATS }, (_, index) => makeSeat(index))
   };
   sitPlayer(room, host);
@@ -169,6 +171,10 @@ function requireRoom(user) {
 
 function requireHost(room, user) {
   if (room.hostId !== user.id) throw new Error("Only the host can do that.");
+}
+
+function connectedHumanSeats(room) {
+  return room.seats.filter((seat) => seat.connected && !seat.isBot && seat.userId);
 }
 
 function activeSeats(room) {
@@ -607,6 +613,42 @@ async function handleApi(req, res) {
       const body = await readJson(req);
       playerAction(room, user.id, body.action, body.amount);
       return send(res, 200, { room: serializeRoom(room, user.id) });
+    }
+
+    if (route === "/api/voice/peers" && req.method === "GET") {
+      return send(res, 200, {
+        peers: connectedHumanSeats(room)
+          .filter((seat) => seat.userId !== user.id)
+          .map((seat) => ({ userId: seat.userId, name: seat.name, seatIndex: seat.index }))
+      });
+    }
+
+    if (route === "/api/voice/signals" && req.method === "GET") {
+      const requestUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+      const since = Number(requestUrl.searchParams.get("since")) || 0;
+      return send(res, 200, {
+        signals: room.voiceSignals.filter((signal) => signal.id > since && signal.to === user.id),
+        latest: room.voiceSignalId
+      });
+    }
+
+    if (route === "/api/voice/signal" && req.method === "POST") {
+      const body = await readJson(req);
+      const target = connectedHumanSeats(room).find((seat) => seat.userId === body.to);
+      if (!target) throw new Error("Voice peer is no longer at the table.");
+      const payload = body.payload && typeof body.payload === "object" ? body.payload : null;
+      if (!payload || !["offer", "answer", "candidate"].includes(payload.type)) throw new Error("Invalid voice signal.");
+      room.voiceSignalId += 1;
+      room.voiceSignals.push({
+        id: room.voiceSignalId,
+        from: user.id,
+        fromName: user.name,
+        to: target.userId,
+        payload,
+        createdAt: Date.now()
+      });
+      room.voiceSignals = room.voiceSignals.slice(-300);
+      return send(res, 200, { ok: true, id: room.voiceSignalId });
     }
 
     return send(res, 404, { error: "API route not found." });

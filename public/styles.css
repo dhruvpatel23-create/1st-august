@@ -55,6 +55,97 @@ button:disabled {
   transform: none;
 }
 
+.icon-button {
+  position: relative;
+  display: grid;
+  width: 46px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+}
+
+.icon-button .icon,
+.icon-button .icon::before,
+.icon-button .icon::after {
+  display: block;
+  box-sizing: border-box;
+}
+
+.icon-button.is-off::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 3px;
+  border-radius: 999px;
+  background: #ffdf91;
+  box-shadow: 0 0 8px rgba(255, 214, 109, 0.5);
+  transform: rotate(-42deg);
+}
+
+.mic-icon {
+  position: relative;
+  width: 14px;
+  height: 21px;
+  border: 3px solid currentColor;
+  border-radius: 999px;
+}
+
+.mic-icon::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 20px;
+  height: 13px;
+  border: solid currentColor;
+  border-width: 0 3px 3px;
+  border-radius: 0 0 12px 12px;
+  transform: translateX(-50%);
+}
+
+.mic-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.speaker-icon {
+  position: relative;
+  width: 13px;
+  height: 18px;
+  border-radius: 3px 0 0 3px;
+  background: currentColor;
+  transform: translateX(-5px);
+}
+
+.speaker-icon::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: -5px;
+  width: 14px;
+  height: 28px;
+  border: solid currentColor;
+  border-width: 3px 3px 3px 0;
+  border-radius: 0 999px 999px 0;
+}
+
+.speaker-icon::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 3px;
+  border: 6px solid transparent;
+  border-left: 0;
+  border-right-color: currentColor;
+}
+
 input {
   width: 100%;
   border: 1px solid var(--line);
@@ -676,6 +767,58 @@ label,
 .host-panel {
   display: grid;
   gap: 13px;
+}
+
+.voice-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.voice-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.voice-state strong {
+  color: var(--gold-2);
+  white-space: nowrap;
+}
+
+.voice-peers {
+  display: grid;
+  gap: 7px;
+}
+
+.voice-peers:empty {
+  display: none;
+}
+
+.voice-peers div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.voice-peers span {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-peers small {
+  color: var(--muted);
+  text-transform: uppercase;
 }
 
 .host-fields {
