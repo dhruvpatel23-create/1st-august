@@ -85,31 +85,39 @@ io.on('connection', (socket) => {
     session[deviceKey].accuracy = data.accuracy;
     session[deviceKey].lastUpdate = Date.now();
 
-    // Calculate distance if both devices have locations
+    // Calculate distance and per-device bearing if both devices have locations
     let distance = null;
-    let bearing = null;
+    let bearingAtoB = null;
+    let bearingBtoA = null;
     if (session.deviceA.lat !== null && session.deviceB && session.deviceB.lat !== null) {
       distance = haversineDistance(
         session.deviceA.lat, session.deviceA.lng,
         session.deviceB.lat, session.deviceB.lng
       );
-      bearing = calculateBearing(
+      bearingAtoB = calculateBearing(
         session.deviceA.lat, session.deviceA.lng,
         session.deviceB.lat, session.deviceB.lng
       );
+      bearingBtoA = calculateBearing(
+        session.deviceB.lat, session.deviceB.lng,
+        session.deviceA.lat, session.deviceA.lng
+      );
     }
 
-    // Broadcast to all devices in session
-    io.to(socket.sessionId).emit('location-update', {
+    const payload = {
       device: role,
-      lat: data.lat,
-      lng: data.lng,
-      accuracy: data.accuracy,
       distance,
-      bearing,
       deviceA: { lat: session.deviceA.lat, lng: session.deviceA.lng, accuracy: session.deviceA.accuracy },
       deviceB: session.deviceB ? { lat: session.deviceB.lat, lng: session.deviceB.lng, accuracy: session.deviceB.accuracy } : null
-    });
+    };
+
+    // Send per-device bearing so each device gets direction TO the other
+    if (session.deviceA.socketId) {
+      io.to(session.deviceA.socketId).emit('location-update', { ...payload, bearing: bearingAtoB });
+    }
+    if (session.deviceB && session.deviceB.socketId) {
+      io.to(session.deviceB.socketId).emit('location-update', { ...payload, bearing: bearingBtoA });
+    }
   });
 
   // Handle disconnection

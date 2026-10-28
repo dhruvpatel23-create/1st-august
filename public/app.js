@@ -46,6 +46,118 @@
   let sessionId = null;
   let geoWatchId = null;
   let currentDistance = null;
+  let deviceHeading = null; // compass heading from Device Orientation API
+
+  // ======================================================================
+  // GPS SMOOTHING — Kalman-inspired 1-D filter applied to lat & lng
+  // Eliminates the jitter that causes distance to jump when stationary.
+  // ======================================================================
+  const GPS_MIN_MOVE_METERS = 3;      // Ignore GPS shifts smaller than this
+  const GPS_SMOOTHING = 0.25;          // Exponential smoothing factor (0-1, lower = smoother)
+  const DISTANCE_SMOOTHING = 0.3;      // Smooth displayed distance too
+
+  let smoothedLat = null;
+  let smoothedLng = null;
+  let lastSentLat = null;
+  let lastSentLng = null;
+  let smoothedDistance = null;
+
+  /**
+   * Haversine distance in meters between two lat/lng pairs (client-side copy
+   * so we can check movement locally before sending to server).
+   */
+  function quickHaversine(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /**
+   * Apply exponential smoothing to raw GPS coordinates and only emit an
+   * update when the smoothed position has moved more than GPS_MIN_MOVE_METERS
+   * from the last position we actually sent.
+   */
+  function processGPS(raw) {
+    if (smoothedLat === null) {
+      // First reading — accept as-is
+      smoothedLat = raw.lat;
+      smoothedLng = raw.lng;
+    } else {
+      // Exponential moving average
+      smoothedLat = smoothedLat + GPS_SMOOTHING * (raw.lat - smoothedLat);
+      smoothedLng = smoothedLng + GPS_SMOOTHING * (raw.lng - smoothedLng);
+    }
+
+    // Check if we've moved enough to send an update
+    if (lastSentLat !== null) {
+      const moved = quickHaversine(lastSentLat, lastSentLng, smoothedLat, smoothedLng);
+      if (moved < GPS_MIN_MOVE_METERS) {
+        return null; // Haven't moved enough — skip this update
+      }
+    }
+
+    lastSentLat = smoothedLat;
+    lastSentLng = smoothedLng;
+
+    return { lat: smoothedLat, lng: smoothedLng, accuracy: raw.accuracy };
+  }
+
+  function resetSmoothing() {
+    smoothedLat = null;
+    smoothedLng = null;
+    lastSentLat = null;
+    lastSentLng = null;
+    smoothedDistance = null;
+  }
+
+  // ======================================================================
+  // DEVICE ORIENTATION — so the arrow points relative to where you're facing
+  // ======================================================================
+  function startCompass() {
+    // Try the absolute orientation event first (more reliable compass)
+    function handleOrientation(e) {
+      let heading = null;
+
+      if (e.webkitCompassHeading !== undefined) {
+        // iOS Safari — provides compass heading directly
+        heading = e.webkitCompassHeading;
+      } else if (e.absolute && e.alpha !== null) {
+        // Android / Chrome — alpha is degrees from north (but inverted)
+        heading = (360 - e.alpha) % 360;
+      } else if (e.alpha !== null) {
+        // Fallback — non-absolute alpha, still usable as relative heading
+        heading = (360 - e.alpha) % 360;
+      }
+
+      if (heading !== null) {
+        deviceHeading = heading;
+      }
+    }
+
+    // Prefer the absolute event (Chrome/Android)
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+
+    // iOS 13+ requires permission
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then((state) => {
+          if (state === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+          }
+        })
+        .catch(console.warn);
+    }
+  }
 
   // --- Socket Connection ---
   function connectSocket() {
@@ -69,7 +181,6 @@
     socket.on('device-disconnected', (data) => {
       showToast(`Device ${data.device} disconnected`, 'error');
       if (data.device === 'A') {
-        // Session owner left, go back to landing
         stopTracking();
         showScreen('landing');
       }
@@ -110,7 +221,7 @@
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 2000,
+        maximumAge: 3000,
         timeout: 10000,
       }
     );
@@ -126,6 +237,7 @@
   // --- Create Session (Device A) ---
   function createSession() {
     myRole = 'A';
+    resetSmoothing();
     socket.emit('create-session', (response) => {
       if (response.success) {
         sessionId = response.sessionId;
@@ -133,11 +245,14 @@
         showScreen('waiting');
 
         // Start GPS immediately
-        startGPS((loc) => {
-          socket.emit('location-update', loc);
-          // Update waiting screen GPS status
+        startGPS((raw) => {
+          const loc = processGPS(raw);
+          if (loc) {
+            socket.emit('location-update', loc);
+          }
+          // Always update the waiting-screen GPS indicator
           const statusEl = els.gpsStatusWaiting;
-          statusEl.innerHTML = `<span class="status-dot active"></span><span>GPS Active — Accuracy: ${Math.round(loc.accuracy)}m</span>`;
+          statusEl.innerHTML = `<span class="status-dot active"></span><span>GPS Active — Accuracy: ${Math.round(raw.accuracy)}m</span>`;
         });
       } else {
         showToast('Failed to create session', 'error');
@@ -151,6 +266,7 @@
     if (code.length !== 6) return;
 
     myRole = 'B';
+    resetSmoothing();
     els.joinError.classList.add('hidden');
 
     socket.emit('join-session', code, (response) => {
@@ -171,47 +287,57 @@
     els.roleBadge.textContent = myRole;
     els.otherLabel.textContent = myRole === 'A' ? 'Device B' : 'Device A';
 
+    startCompass();
+
     // Start GPS for tracking
-    startGPS((loc) => {
-      socket.emit('location-update', loc);
+    startGPS((raw) => {
+      const loc = processGPS(raw);
+      if (loc) {
+        socket.emit('location-update', loc);
+      }
     });
   }
 
   function stopTracking() {
     stopGPS();
+    resetSmoothing();
     sessionId = null;
     myRole = null;
     currentDistance = null;
+    deviceHeading = null;
   }
 
   // --- Update Tracking UI ---
   function updateTrackingUI(data) {
-    // Update coordinates
-    if (data.deviceA) {
-      if (data.deviceA.lat !== null) {
-        els.coordsA.textContent = `${data.deviceA.lat.toFixed(6)}, ${data.deviceA.lng.toFixed(6)}`;
-        els.accuracyA.textContent = `±${Math.round(data.deviceA.accuracy)}m accuracy`;
-        els.statusA.textContent = 'Online';
-        els.statusA.classList.add('online');
-      }
+    // Update coordinate cards
+    if (data.deviceA && data.deviceA.lat !== null) {
+      els.coordsA.textContent = `${data.deviceA.lat.toFixed(6)}, ${data.deviceA.lng.toFixed(6)}`;
+      els.accuracyA.textContent = `±${Math.round(data.deviceA.accuracy)}m accuracy`;
+      els.statusA.textContent = 'Online';
+      els.statusA.classList.add('online');
     }
 
-    if (data.deviceB) {
-      if (data.deviceB.lat !== null) {
-        els.coordsB.textContent = `${data.deviceB.lat.toFixed(6)}, ${data.deviceB.lng.toFixed(6)}`;
-        els.accuracyB.textContent = `±${Math.round(data.deviceB.accuracy)}m accuracy`;
-        els.statusB.textContent = 'Online';
-        els.statusB.classList.add('online');
-      }
+    if (data.deviceB && data.deviceB.lat !== null) {
+      els.coordsB.textContent = `${data.deviceB.lat.toFixed(6)}, ${data.deviceB.lng.toFixed(6)}`;
+      els.accuracyB.textContent = `±${Math.round(data.deviceB.accuracy)}m accuracy`;
+      els.statusB.textContent = 'Online';
+      els.statusB.classList.add('online');
     }
 
-    // Update distance
+    // Update distance + direction
     if (data.distance !== null && data.distance !== undefined) {
-      currentDistance = data.distance;
-      updateDistanceDisplay(data.distance);
-      updateRadarPosition(data.distance, data.bearing);
+      // Smooth the distance to prevent jittery display
+      if (smoothedDistance === null) {
+        smoothedDistance = data.distance;
+      } else {
+        smoothedDistance = smoothedDistance + DISTANCE_SMOOTHING * (data.distance - smoothedDistance);
+      }
+      currentDistance = smoothedDistance;
+
+      updateDistanceDisplay(smoothedDistance);
+      updateRadarPosition(smoothedDistance, data.bearing);
       updateCompass(data.bearing);
-      updateSignalBars(data.distance);
+      updateSignalBars(smoothedDistance);
     }
   }
 
@@ -248,7 +374,7 @@
 
   function updateRadarPosition(distance, bearing) {
     const marker = els.otherMarker;
-    const radarRadius = 90; // half of 200px container minus padding
+    const radarRadius = 90;
 
     // Map distance to radar position (closer = center, farther = edge)
     let normalizedDist;
@@ -259,7 +385,14 @@
     else if (distance < 5000) normalizedDist = 0.8;
     else normalizedDist = 0.95;
 
-    const rad = ((bearing || 0) - 90) * (Math.PI / 180);
+    // Use relative bearing (account for device heading) so the radar
+    // rotates with the phone — the dot stays in the correct physical direction
+    let displayBearing = bearing || 0;
+    if (deviceHeading !== null) {
+      displayBearing = (bearing - deviceHeading + 360) % 360;
+    }
+
+    const rad = (displayBearing - 90) * (Math.PI / 180);
     const x = Math.cos(rad) * radarRadius * normalizedDist;
     const y = Math.sin(rad) * radarRadius * normalizedDist;
 
@@ -268,8 +401,24 @@
 
   function updateCompass(bearing) {
     if (bearing === null || bearing === undefined) return;
-    els.compassArrow.style.transform = `rotate(${bearing}deg)`;
-    els.bearingValue.textContent = `${Math.round(bearing)}°`;
+
+    // Rotate arrow relative to device heading so it physically
+    // points toward the other device no matter how you hold the phone
+    let arrowDeg = bearing;
+    if (deviceHeading !== null) {
+      arrowDeg = (bearing - deviceHeading + 360) % 360;
+    }
+
+    els.compassArrow.style.transform = `rotate(${arrowDeg}deg)`;
+    els.bearingValue.textContent = `${Math.round(bearing)}° ${bearingToCardinal(bearing)}`;
+  }
+
+  /**
+   * Convert a bearing in degrees to a cardinal direction string.
+   */
+  function bearingToCardinal(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
   }
 
   function updateSignalBars(distance) {
@@ -348,7 +497,6 @@
     navigator.clipboard.writeText(code).then(() => {
       showToast('Code copied to clipboard!', 'info');
     }).catch(() => {
-      // Fallback
       const ta = document.createElement('textarea');
       ta.value = code;
       document.body.appendChild(ta);
@@ -363,7 +511,6 @@
     stopTracking();
     if (socket) socket.disconnect();
     showScreen('landing');
-    // Reconnect socket for next session
     setTimeout(() => {
       socket.connect();
     }, 500);
