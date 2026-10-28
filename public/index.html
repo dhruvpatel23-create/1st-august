@@ -1,156 +1,186 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>High Rise Online Poker</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main class="app-shell">
-      <section class="login-panel" id="loginPanel">
-        <div class="brand">
-          <h1>High Rise Online Poker</h1>
-          <p>Private Texas Hold'em rooms with host-controlled buy-ins.</p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>FindMyDevice — Track Distance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ============ LANDING SCREEN ============ -->
+    <div id="screen-landing" class="screen active">
+      <div class="landing-bg">
+        <div class="radar-bg">
+          <div class="radar-ring r1"></div>
+          <div class="radar-ring r2"></div>
+          <div class="radar-ring r3"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-dot center-dot"></div>
         </div>
-        <form id="loginForm" class="panel-form">
-          <label for="playerName">Player name</label>
-          <input id="playerName" name="playerName" autocomplete="nickname" maxlength="24" placeholder="Enter your name" />
-          <button type="submit" class="gold">Continue</button>
-          <p id="loginError" class="error"></p>
-        </form>
-      </section>
-
-      <section class="lobby-screen hidden" id="lobbyScreen">
-        <header class="lobby-header">
-          <div>
-            <h1>High Rise Online Poker</h1>
-            <p id="welcomeText">Choose a table.</p>
-          </div>
-        </header>
-        <div class="lobby-grid">
-          <form class="lobby-card" id="createRoomForm">
-            <h2>Make Room</h2>
-            <p>Host a real-player table. You control blinds, buy-ins, chip stacks, and when the hand starts.</p>
-            <button type="submit" class="green">Generate Room Code</button>
-          </form>
-          <form class="lobby-card" id="joinRoomForm">
-            <h2>Join Room</h2>
-            <p>Enter the code shared by a host.</p>
-            <input id="roomCodeInput" maxlength="8" placeholder="ROOM CODE" />
-            <button type="submit" class="blue">Join Table</button>
-          </form>
-          <form class="lobby-card" id="practiceRoomForm">
-            <h2>Practice Room</h2>
-            <p>Play against bots while testing rules and actions.</p>
-            <button type="submit" class="red">Practice With Bots</button>
-          </form>
+      </div>
+      <div class="landing-content">
+        <div class="logo-icon">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="6" fill="#34C759"/>
+            <circle cx="24" cy="24" r="12" stroke="#34C759" stroke-width="2" fill="none" opacity="0.6"/>
+            <circle cx="24" cy="24" r="18" stroke="#34C759" stroke-width="1.5" fill="none" opacity="0.35"/>
+            <circle cx="24" cy="24" r="23" stroke="#34C759" stroke-width="1" fill="none" opacity="0.15"/>
+          </svg>
         </div>
-        <p id="lobbyError" class="error center"></p>
-      </section>
+        <h1>FindMyDevice</h1>
+        <p class="tagline">Track real-time distance between two devices</p>
+        <div class="landing-buttons">
+          <button id="btn-create" class="btn btn-primary">
+            <span class="btn-icon">📡</span>
+            <span>
+              <strong>Create Session</strong>
+              <small>Start as Device A</small>
+            </span>
+          </button>
+          <button id="btn-join" class="btn btn-secondary">
+            <span class="btn-icon">📱</span>
+            <span>
+              <strong>Join Session</strong>
+              <small>Connect as Device B</small>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
 
-      <section class="table-screen hidden" id="tableScreen">
-        <header class="topbar">
-          <div>
-            <h1>High Rise Online Poker</h1>
-          </div>
-          <div class="room-badges">
-            <button id="micToggle" class="icon-button" type="button" title="Turn microphone on" aria-label="Turn microphone on">
-              <span class="icon mic-icon" aria-hidden="true"></span>
-            </button>
-            <button id="speakerToggle" class="icon-button blue" type="button" title="Mute table audio" aria-label="Mute table audio">
-              <span class="icon speaker-icon" aria-hidden="true"></span>
-            </button>
-            <button id="rankingsToggle">Hand Rankings</button>
-            <button id="leaveRoom">Leave</button>
-            <div class="status-pill" id="roomCode">Room</div>
-            <div class="status-pill" id="phaseBadge">Lobby</div>
-          </div>
-        </header>
+    <!-- ============ JOIN SCREEN ============ -->
+    <div id="screen-join" class="screen">
+      <button class="back-btn" id="btn-back-join">← Back</button>
+      <div class="join-content">
+        <h2>Enter Session Code</h2>
+        <p>Ask Device A for their 6-character code</p>
+        <div class="code-input-group">
+          <input type="text" id="input-code" class="code-input" maxlength="6" placeholder="ABC123" autocomplete="off" spellcheck="false">
+        </div>
+        <button id="btn-connect" class="btn btn-primary btn-full" disabled>
+          Connect to Device A
+        </button>
+        <p id="join-error" class="error-msg hidden"></p>
+      </div>
+    </div>
 
-        <section class="table-grid">
-          <section class="table-stage">
-            <div class="table-zone">
-              <div class="table-rail">
-                <div class="felt">
-                  <div class="table-title">High Rise Online Poker</div>
-                  <div class="pot" id="pot">Pot $0</div>
-                  <div class="community" id="community"></div>
-                  <div class="winner" id="winner"></div>
-                </div>
-              </div>
-              <div class="seat-ring" id="seatRing"></div>
+    <!-- ============ WAITING SCREEN ============ -->
+    <div id="screen-waiting" class="screen">
+      <div class="waiting-content">
+        <div class="pulse-container">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring delay-1"></div>
+          <div class="pulse-ring delay-2"></div>
+          <div class="pulse-dot"></div>
+        </div>
+        <h2>Waiting for Device B</h2>
+        <p>Share this code with the other device:</p>
+        <div class="session-code" id="display-code">------</div>
+        <button class="btn btn-ghost" id="btn-copy-code">📋 Copy Code</button>
+        <div class="gps-status" id="gps-status-waiting">
+          <span class="status-dot"></span>
+          <span>Acquiring GPS...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TRACKING SCREEN ============ -->
+    <div id="screen-tracking" class="screen">
+      <div class="tracking-header">
+        <div class="session-badge">
+          <span class="live-dot"></span>
+          Session: <strong id="tracking-session-id">------</strong>
+          <span class="role-badge" id="role-badge">A</span>
+        </div>
+      </div>
+
+      <div class="tracking-body">
+        <!-- Distance Display -->
+        <div class="distance-hero">
+          <div class="distance-label">Distance</div>
+          <div class="distance-value" id="distance-value">--</div>
+          <div class="distance-unit" id="distance-unit">waiting for signal</div>
+        </div>
+
+        <!-- Proximity Radar -->
+        <div class="proximity-radar">
+          <div class="radar-visual">
+            <div class="radar-circle c1"></div>
+            <div class="radar-circle c2"></div>
+            <div class="radar-circle c3"></div>
+            <div class="radar-circle c4"></div>
+            <div class="device-marker self-marker">
+              <div class="marker-dot self"></div>
+              <div class="marker-label">You</div>
             </div>
-            <div class="hand-area">
-              <div>
-                <span class="label">Your Cards</span>
-                <div class="cards" id="holeCards"></div>
-              </div>
-              <div class="actions">
-                <button data-action="check" class="green">Check</button>
-                <button data-action="call" class="blue">Call</button>
-                <button data-action="raise" class="red">Raise</button>
-                <button data-action="allin" class="gold">All-In</button>
-                <button data-action="fold">Fold</button>
-                <div class="raise-stepper">
-                  <button id="raiseMinus" type="button">-25</button>
-                  <input id="raiseAmount" type="number" min="50" step="25" value="100" />
-                  <button id="raisePlus" type="button">+25</button>
-                </div>
-              </div>
+            <div class="device-marker other-marker" id="other-marker">
+              <div class="marker-dot other"></div>
+              <div class="marker-label" id="other-label">Device B</div>
             </div>
-          </section>
-
-          <aside class="control-panel">
-            <section class="host-panel hidden" id="hostPanel">
-              <h2>Host Controls</h2>
-              <div class="host-fields">
-                <label>Small Blind<input id="smallBlind" type="number" min="1" value="25" /></label>
-                <label>Big Blind<input id="bigBlind" type="number" min="2" value="50" /></label>
-                <label>Default Buy-in<input id="defaultBuyIn" type="number" min="50" value="1250" /></label>
-              </div>
-              <button id="saveSettings" class="blue">Save Settings</button>
-              <div id="chipControls" class="chip-controls"></div>
-              <button id="startHand" class="green">Start Hand</button>
-            </section>
-            <section>
-              <h2>Voice Chat</h2>
-              <div class="voice-panel">
-                <div class="voice-state">
-                  <span id="voiceStatus">Mic off</span>
-                  <strong id="voiceCount">0 connected</strong>
-                </div>
-                <div id="voicePeers" class="voice-peers"></div>
-              </div>
-            </section>
-            <section>
-              <h2>Hand Log</h2>
-              <ol id="log" class="log"></ol>
-            </section>
-            <p id="gameError" class="error"></p>
-          </aside>
-        </section>
-
-        <aside class="rankings-drawer hidden" id="rankingsDrawer">
-          <div class="rankings-head">
-            <h2>Hand Rankings</h2>
-            <button id="rankingsClose" type="button">Close</button>
           </div>
-          <ol class="rankings-list">
-            <li><div><strong>Royal Flush</strong><span>A K Q J 10, same suit</span></div><div class="rank-example red"><i>A♥</i><i>K♥</i><i>Q♥</i><i>J♥</i><i>10♥</i></div></li>
-            <li><div><strong>Straight Flush</strong><span>Five in order, same suit</span></div><div class="rank-example"><i>9♠</i><i>8♠</i><i>7♠</i><i>6♠</i><i>5♠</i></div></li>
-            <li><div><strong>Four of a Kind</strong><span>Four cards of one rank</span></div><div class="rank-example mixed"><i>Q♠</i><i>Q♥</i><i>Q♦</i><i>Q♣</i><i>3♠</i></div></li>
-            <li><div><strong>Full House</strong><span>Three of a kind plus a pair</span></div><div class="rank-example mixed"><i>10♠</i><i>10♥</i><i>10♣</i><i>4♦</i><i>4♠</i></div></li>
-            <li><div><strong>Flush</strong><span>Five cards of one suit</span></div><div class="rank-example red"><i>A♦</i><i>J♦</i><i>8♦</i><i>5♦</i><i>2♦</i></div></li>
-            <li><div><strong>Straight</strong><span>Five cards in order</span></div><div class="rank-example mixed"><i>8♣</i><i>7♦</i><i>6♠</i><i>5♥</i><i>4♣</i></div></li>
-            <li><div><strong>Three of a Kind</strong><span>Three cards of one rank</span></div><div class="rank-example mixed"><i>7♠</i><i>7♥</i><i>7♣</i><i>K♦</i><i>2♣</i></div></li>
-            <li><div><strong>Two Pair</strong><span>Two separate pairs</span></div><div class="rank-example mixed"><i>J♠</i><i>J♦</i><i>5♥</i><i>5♣</i><i>9♠</i></div></li>
-            <li><div><strong>One Pair</strong><span>Two cards of one rank</span></div><div class="rank-example mixed"><i>A♠</i><i>A♥</i><i>9♣</i><i>6♦</i><i>3♠</i></div></li>
-            <li><div><strong>High Card</strong><span>Highest card wins</span></div><div class="rank-example mixed"><i>A♣</i><i>J♦</i><i>8♠</i><i>4♥</i><i>2♣</i></div></li>
-          </ol>
-        </aside>
-      </section>
-    </main>
-    <script src="/script.js"></script>
-  </body>
+        </div>
+
+        <!-- Direction Arrow -->
+        <div class="direction-section">
+          <div class="compass-container">
+            <div class="compass-arrow" id="compass-arrow">
+              <svg viewBox="0 0 60 60" fill="none">
+                <polygon points="30,5 40,50 30,40 20,50" fill="#34C759" opacity="0.9"/>
+              </svg>
+            </div>
+          </div>
+          <div class="direction-label">Direction to other device</div>
+          <div class="bearing-value" id="bearing-value">--°</div>
+        </div>
+
+        <!-- Device Info Cards -->
+        <div class="device-cards">
+          <div class="device-card">
+            <div class="card-header">
+              <span class="card-dot a"></span>
+              <span>Device A</span>
+              <span class="card-status" id="status-a">Offline</span>
+            </div>
+            <div class="card-coords" id="coords-a">—</div>
+            <div class="card-accuracy" id="accuracy-a">—</div>
+          </div>
+          <div class="device-card">
+            <div class="card-header">
+              <span class="card-dot b"></span>
+              <span>Device B</span>
+              <span class="card-status" id="status-b">Offline</span>
+            </div>
+            <div class="card-coords" id="coords-b">—</div>
+            <div class="card-accuracy" id="accuracy-b">—</div>
+          </div>
+        </div>
+
+        <!-- Signal Strength Indicator -->
+        <div class="signal-section">
+          <div class="signal-bars" id="signal-bars">
+            <div class="bar b1"></div>
+            <div class="bar b2"></div>
+            <div class="bar b3"></div>
+            <div class="bar b4"></div>
+            <div class="bar b5"></div>
+          </div>
+          <div class="signal-label" id="signal-label">No Signal</div>
+        </div>
+      </div>
+
+      <button class="btn btn-danger btn-full" id="btn-disconnect">End Session</button>
+    </div>
+
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
